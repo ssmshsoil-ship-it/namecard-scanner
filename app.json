@@ -3,6 +3,7 @@
     "name": "namecard-scanner",
     "slug": "namecard-scanner",
     "version": "1.0.0",
+    "scheme": "com.ssmshsoil.bizcardscanner",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -18,10 +19,19 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.ssmshsoil.bizcardscanner"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "ebe0614d-e845-40a9-b417-67d8e16935d9"
+      }
+    },
+    "plugins": [
+      "expo-web-browser"
+    ]
   }
 }
