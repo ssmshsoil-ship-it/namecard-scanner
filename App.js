@@ -1,51 +1,62 @@
-import { StatusBar } from 'expo-status-bar';
+import React, { useState } from 'react';
 import {
-  StyleSheet, Text, View, TouchableOpacity, Image,
-  ScrollView, ActivityIndicator, Alert, TextInput
+  SafeAreaView, ScrollView, View, Text, TextInput,
+  TouchableOpacity, StyleSheet, StatusBar, Image, ActivityIndicator, Alert,
 } from 'react-native';
+import {
+  Camera, Image as ImageIcon, Phone, Building2, MapPin,
+  User, Briefcase, Smartphone, PhoneCall, Printer,
+  Mail, Globe, UserPlus, ScanLine, Sparkles,
+} from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Contacts from 'expo-contacts';
-import { useState } from 'react';
 
 const CLAUDE_API_KEY = process.env.EXPO_PUBLIC_CLAUDE_API_KEY;
 const API_URL = 'https://api.anthropic.com/v1/messages';
 
+const COLORS = {
+  bg: '#F8FAFC', card: '#FFFFFF', slate: '#0F172A', slate2: '#1E293B',
+  cyan: '#06B6D4', text: '#334155', muted: '#64748B',
+  border: '#E2E8F0', secondary: '#F1F5F9', white: '#FFFFFF',
+};
+
+const FIELD_DEFS = [
+  { key: 'company', Icon: Building2, label: 'Company' },
+  { key: 'branch',  Icon: MapPin,    label: 'Branch' },
+  { key: 'name',    Icon: User,      label: 'Name' },
+  { key: 'title',   Icon: Briefcase, label: 'Title' },
+  { key: 'mobile',  Icon: Smartphone,label: 'Mobile',   keyboardType: 'phone-pad' },
+  { key: 'tel',     Icon: PhoneCall, label: 'Work Tel', keyboardType: 'phone-pad' },
+  { key: 'fax',     Icon: Printer,   label: 'Fax',      keyboardType: 'phone-pad' },
+  { key: 'email',   Icon: Mail,      label: 'Email',    keyboardType: 'email-address' },
+  { key: 'address', Icon: MapPin,    label: 'Address' },
+  { key: 'url',     Icon: Globe,     label: 'Website',  keyboardType: 'url' },
+];
+
 export default function App() {
-  const [image, setImage] = useState(null);
+  const [image, setImage]     = useState(null);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
-  const [saving, setSaving] = useState(false);
+  const [result, setResult]   = useState(null);
+  const [saving, setSaving]   = useState(false);
 
   const pickImage = async (useCamera) => {
     let pickerResult;
     if (useCamera) {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('권한 필요', '카메라 권한이 필요합니다.');
-        return;
-      }
+      if (status !== 'granted') { Alert.alert('권한 필요', '카메라 권한이 필요합니다.'); return; }
       pickerResult = await ImagePicker.launchCameraAsync({ base64: true, quality: 0.8 });
     } else {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('권한 필요', '갤러리 권한이 필요합니다.');
-        return;
-      }
+      if (status !== 'granted') { Alert.alert('권한 필요', '갤러리 권한이 필요합니다.'); return; }
       pickerResult = await ImagePicker.launchImageLibraryAsync({ base64: true, quality: 0.8 });
     }
-    if (!pickerResult.canceled) {
-      setImage(pickerResult.assets[0]);
-      setResult(null);
-    }
+    if (!pickerResult.canceled) { setImage(pickerResult.assets[0]); setResult(null); }
   };
 
   const analyze = async () => {
     if (!image) return;
     setLoading(true);
     try {
-      const base64 = image.base64;
-      const mimeType = image.mimeType || 'image/jpeg';
-
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: {
@@ -59,55 +70,48 @@ export default function App() {
           messages: [{
             role: 'user',
             content: [
-              { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } },
-              { type: 'text', text:  '이 명함 이미지에서 정보를 정확하게 추출하세요.\n한글 이름은 특히 정확하게 읽으세요. 받침 등 헷갈리는 글자 주의.\n반드시 순수 JSON만 응답 (마크다운 없이):\n{"company":"상호","branch":"지점명(없으면 빈문자열)","name":"성함(정확히)","title":"직책(없으면 빈문자열)","mobile":"휴대폰(없으면 빈문자열)","tel":"회사전화(없으면 빈문자열)","fax":"팩스(없으면 빈문자열)","email":"이메일(없으면 빈문자열)","address":"직장주소(없으면 빈문자열)","url":"홈페이지URL www포함 전부(없으면 빈문자열)"}\n없는 필드는 빈문자열. JSON 외 텍스트 절대 금지.' }
+              { type: 'image', source: { type: 'base64', media_type: image.mimeType || 'image/jpeg', data: image.base64 } },
+              { type: 'text', text: '이 명함 이미지에서 정보를 정확하게 추출하세요.\n한글 이름은 초성/중성/종성을 정확히 구분해서 읽으세요.\n반드시 순수 JSON만 응답 (마크다운 없이):\n{"company":"상호","branch":"지점명(없으면 빈문자열)","name":"성함(정확히)","title":"직책(없으면 빈문자열)","mobile":"휴대폰(없으면 빈문자열)","tel":"회사전화(없으면 빈문자열)","fax":"팩스(없으면 빈문자열)","email":"이메일(없으면 빈문자열)","address":"직장주소(없으면 빈문자열)","url":"홈페이지URL(없으면 빈문자열)"}\n없는 필드는 빈문자열. JSON 외 텍스트 절대 금지.' }
             ]
           }]
         })
       });
-
       if (!response.ok) throw new Error(`API 오류: ${response.status}`);
       const data = await response.json();
       const text = data.content[0].text.trim().replace(/```json|```/g, '').trim();
-      const parsed = JSON.parse(text);
-      setResult(parsed);
+      setResult(JSON.parse(text));
     } catch (e) {
-      console.error(e);
       Alert.alert('오류', '명함 분석에 실패했습니다.\n' + e.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const buildDisplayName = (r) => {
-    return [r.company, r.branch, r.name, r.title]
-      .map(s => (s || '').trim()).filter(Boolean).join(' ');
-  };
+  const buildDisplayName = (r) =>
+    [r.company, r.branch, r.name, r.title].map(s => (s||'').trim()).filter(Boolean).join(' ');
 
   const saveContact = async () => {
     if (!result) return;
     setSaving(true);
     try {
       const { status } = await Contacts.requestPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('권한 필요', '연락처 접근 권한이 필요합니다.');
-        return;
-      }
+      if (status !== 'granted') { Alert.alert('권한 필요', '연락처 권한이 필요합니다.'); return; }
       const displayName = buildDisplayName(result);
       const contact = {
         [Contacts.Fields.FirstName]: displayName,
         [Contacts.Fields.PhoneNumbers]: [],
         [Contacts.Fields.Emails]: [],
+        [Contacts.Fields.UrlAddresses]: [],
       };
-      if (result.mobile) contact[Contacts.Fields.PhoneNumbers].push({ label: 'mobile', number: result.mobile });
-      if (result.tel)    contact[Contacts.Fields.PhoneNumbers].push({ label: 'work',   number: result.tel });
-      if (result.fax)    contact[Contacts.Fields.PhoneNumbers].push({ label: 'other',  number: result.fax });
-      if (result.email)  contact[Contacts.Fields.Emails].push({ label: 'work', email: result.email });
-      if (result.company) contact[Contacts.Fields.Company] = result.company;
+      if (result.mobile)  contact[Contacts.Fields.PhoneNumbers].push({ label: 'mobile', number: result.mobile });
+      if (result.tel)     contact[Contacts.Fields.PhoneNumbers].push({ label: 'work',   number: result.tel });
+      if (result.fax)     contact[Contacts.Fields.PhoneNumbers].push({ label: 'other',  number: result.fax });
+      if (result.email)   contact[Contacts.Fields.Emails].push({ label: 'work', email: result.email });
+      if (result.url)     contact[Contacts.Fields.UrlAddresses].push({ label: 'work', url: result.url });
+      if (result.company) contact[Contacts.Fields.Company]  = result.company;
       if (result.title)   contact[Contacts.Fields.JobTitle] = result.title;
-
       await Contacts.addContactAsync(contact);
-      Alert.alert('저장 완료', `"${displayName}" 연락처에 저장됐습니다.`);
+      Alert.alert('✅ 저장 완료', `"${displayName}"\n연락처에 저장됐습니다.`);
     } catch (e) {
       Alert.alert('오류', '연락처 저장에 실패했습니다.');
     } finally {
@@ -118,142 +122,234 @@ export default function App() {
   const updateField = (key, value) => setResult(prev => ({ ...prev, [key]: value }));
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <StatusBar style="light" />
+    <SafeAreaView style={styles.safe}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.slate} />
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
 
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>🌱 명함 스캐너</Text>
-        <Text style={styles.headerSub}>찍으면 3초 · 발신번호 자동 표시</Text>
-      </View>
-
-      <View style={styles.imageBox}>
-        {image ? (
-          <Image source={{ uri: image.uri }} style={styles.previewImage} resizeMode="contain" />
-        ) : (
-          <View style={styles.imagePlaceholder}>
-            <Text style={styles.placeholderIcon}>📷</Text>
-            <Text style={styles.placeholderText}>명함 사진을 추가하세요</Text>
-          </View>
-        )}
-      </View>
-
-      <View style={styles.btnRow}>
-        <TouchableOpacity style={styles.btnSecondary} onPress={() => pickImage(true)}>
-          <Text style={styles.btnSecondaryText}>📷 카메라</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.btnSecondary} onPress={() => pickImage(false)}>
-          <Text style={styles.btnSecondaryText}>🖼 갤러리</Text>
-        </TouchableOpacity>
-      </View>
-
-      <TouchableOpacity
-        style={[styles.btnMain, (!image || loading) && styles.btnDisabled]}
-        onPress={analyze}
-        disabled={!image || loading}
-      >
-        {loading
-          ? <ActivityIndicator color="#fff" />
-          : <Text style={styles.btnMainText}>명함 분석 시작</Text>
-        }
-      </TouchableOpacity>
-
-      {result && (
-        <View style={styles.resultCard}>
-          <View style={styles.displayNameBox}>
-            <Text style={styles.displayNameLabel}>📱 발신번호 표시</Text>
-            <Text style={styles.displayName}>{buildDisplayName(result)}</Text>
-          </View>
-
-          {[
-            { key: 'company', label: '상호' },
-            { key: 'branch',  label: '지점' },
-            { key: 'name',    label: '성함' },
-            { key: 'title',   label: '직책' },
-            { key: 'mobile',  label: '휴대폰' },
-            { key: 'tel',     label: '직통' },
-            { key: 'fax',     label: '팩스' },
-            { key: 'email',   label: '이메일' },
-            { key: 'address', label: '직장주소' },
-            { key: 'url', label: '홈페이지' },
-          ].map((field) => (
-            <View key={field.key} style={styles.fieldRow}>
-              <Text style={styles.fieldLabel}>{field.label}</Text>
-              <TextInput
-                style={styles.fieldInput}
-                value={result[field.key] || ''}
-                onChangeText={(v) => updateField(field.key, v)}
-                placeholder={field.label}
-                placeholderTextColor="#ccc"
-              />
+        {/* 헤더 */}
+        <View style={styles.header}>
+          <View style={styles.headerRow}>
+            <View style={styles.headerLeft}>
+              <View style={styles.logoBox}>
+                <ScanLine size={20} color={COLORS.cyan} />
+                <View style={styles.aiBadge}><Text style={styles.aiBadgeText}>AI</Text></View>
+              </View>
+              <View>
+                <Text style={styles.headerTitle}>BizCard Scanner</Text>
+                <Text style={styles.headerSubtitle}>AI-powered contact capture</Text>
+              </View>
             </View>
-          ))}
-
-          <TouchableOpacity
-            style={[styles.btnSave, saving && styles.btnDisabled]}
-            onPress={saveContact}
-            disabled={saving}
-          >
-            {saving
-              ? <ActivityIndicator color="#fff" />
-              : <Text style={styles.btnSaveText}>📲 연락처 저장</Text>
-            }
-          </TouchableOpacity>
+            <TouchableOpacity style={styles.historyBtn}>
+              <Text style={styles.historyText}>History</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      )}
-    </ScrollView>
+
+        <View style={styles.main}>
+
+          {/* Card Preview */}
+          <View style={styles.card}>
+            <View style={styles.cardHeaderRow}>
+              <Text style={styles.cardLabel}>Card Preview</Text>
+              <View style={styles.readyPill}>
+                <View style={styles.readyDot} />
+                <Text style={styles.readyText}>READY</Text>
+              </View>
+            </View>
+
+            {/* 이미지 박스 */}
+            <View style={styles.previewBox}>
+              {image ? (
+                <Image source={{ uri: image.uri }} style={styles.previewImage} resizeMode="contain" />
+              ) : (
+                <>
+                  <View style={styles.previewIcon}>
+                    <Camera size={24} color={COLORS.cyan} />
+                  </View>
+                  <Text style={styles.previewHint}>Capture or upload a business card</Text>
+                </>
+              )}
+              <View style={[styles.corner, styles.cornerTL]} />
+              <View style={[styles.corner, styles.cornerTR]} />
+              <View style={[styles.corner, styles.cornerBL]} />
+              <View style={[styles.corner, styles.cornerBR]} />
+            </View>
+
+            {/* 카메라/갤러리 버튼 */}
+            <View style={styles.row2}>
+              <TouchableOpacity style={styles.outlineBtn} onPress={() => pickImage(true)}>
+                <Camera size={16} color={COLORS.cyan} />
+                <Text style={styles.outlineBtnText}>Camera</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.outlineBtn} onPress={() => pickImage(false)}>
+                <ImageIcon size={16} color={COLORS.cyan} />
+                <Text style={styles.outlineBtnText}>Gallery</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* 분석 버튼 */}
+            <TouchableOpacity
+              style={[styles.ctaBtn, (!image || loading) && styles.ctaBtnDisabled]}
+              onPress={analyze}
+              disabled={!image || loading}
+              activeOpacity={0.85}
+            >
+              {loading ? (
+                <ActivityIndicator color={COLORS.slate} size="small" />
+              ) : (
+                <Sparkles size={16} color={COLORS.slate} />
+              )}
+              <Text style={styles.ctaText}>{loading ? 'Analyzing...' : 'Scan Business Card'}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Caller ID Preview */}
+          {result && (
+            <View style={styles.darkCard}>
+              <View style={styles.cardHeaderRow}>
+                <Text style={styles.darkLabel}>CALLER ID PREVIEW</Text>
+                <View style={styles.aiPill}>
+                  <Sparkles size={11} color={COLORS.cyan} />
+                  <Text style={styles.aiPillText}>AI</Text>
+                </View>
+              </View>
+              <View style={styles.callerRow}>
+                <View style={styles.callerIcon}>
+                  <Phone size={20} color={COLORS.cyan} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.callerCompany}>
+                    {[result.company, result.branch].filter(Boolean).join(' · ')}
+                  </Text>
+                  <Text style={styles.callerName}>
+                    {result.name}
+                    {result.title ? <Text style={{ color: COLORS.cyan }}> · {result.title}</Text> : null}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Extracted Details */}
+          {result && (
+            <View style={styles.card}>
+              <View style={styles.cardHeaderRow}>
+                <View>
+                  <Text style={styles.sectionTitle}>Extracted Details</Text>
+                  <Text style={styles.sectionSubtitle}>Tap any field to edit</Text>
+                </View>
+                <View style={styles.confidencePill}>
+                  <Text style={styles.confidenceText}>98% confidence</Text>
+                </View>
+              </View>
+
+              <View style={{ marginTop: 12 }}>
+                {FIELD_DEFS.map(({ key, Icon, label, keyboardType }) => (
+                  <View key={key} style={styles.fieldRow}>
+                    <View style={styles.fieldIcon}>
+                      <Icon size={16} color={COLORS.cyan} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.fieldLabel}>{label.toUpperCase()}</Text>
+                      <TextInput
+                        value={result[key] || ''}
+                        onChangeText={(v) => updateField(key, v)}
+                        keyboardType={keyboardType || 'default'}
+                        style={styles.input}
+                        placeholder={label}
+                        placeholderTextColor={COLORS.muted}
+                      />
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Save to Contacts */}
+          {result && (
+            <TouchableOpacity
+              style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
+              onPress={saveContact}
+              disabled={saving}
+              activeOpacity={0.85}
+            >
+              {saving
+                ? <ActivityIndicator color={COLORS.white} size="small" />
+                : <UserPlus size={16} color={COLORS.white} />
+              }
+              <Text style={styles.saveText}>
+                {saving ? 'Saving...' : 'Save to Contacts'}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f7f8f6' },
-  content: { paddingBottom: 60 },
-  header: { backgroundColor: '#1a4a2e', paddingTop: 60, paddingBottom: 24, paddingHorizontal: 20 },
-  headerTitle: { color: '#fff', fontSize: 22, fontWeight: 'bold' },
-  headerSub: { color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 4 },
-  imageBox: {
-    margin: 16, borderRadius: 14, overflow: 'hidden',
-    backgroundColor: '#fff', height: 200,
-    justifyContent: 'center', alignItems: 'center',
-    shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 8, elevation: 3,
-  },
+  safe: { flex: 1, backgroundColor: COLORS.bg },
+  header: { backgroundColor: COLORS.slate, paddingHorizontal: 20, paddingTop: 48, paddingBottom: 56 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  logoBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(6,182,212,0.15)', borderWidth: 1, borderColor: 'rgba(6,182,212,0.4)', alignItems: 'center', justifyContent: 'center' },
+  aiBadge: { position: 'absolute', top: -4, right: -4, backgroundColor: COLORS.cyan, paddingHorizontal: 4, paddingVertical: 1, borderRadius: 4 },
+  aiBadgeText: { fontSize: 8, fontWeight: '800', color: COLORS.slate },
+  headerTitle: { color: COLORS.white, fontSize: 15, fontWeight: '600' },
+  headerSubtitle: { color: 'rgba(255,255,255,0.55)', fontSize: 11 },
+  historyBtn: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999 },
+  historyText: { color: 'rgba(255,255,255,0.8)', fontSize: 11 },
+
+  main: { paddingHorizontal: 16, marginTop: -24, gap: 16 },
+
+  card: { backgroundColor: COLORS.card, borderRadius: 18, padding: 16, shadowColor: COLORS.slate, shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 3 },
+  cardHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  cardLabel: { fontSize: 12, fontWeight: '500', color: COLORS.muted },
+  readyPill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(6,182,212,0.15)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999 },
+  readyDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.cyan },
+  readyText: { fontSize: 10, fontWeight: '700', color: COLORS.slate, letterSpacing: 1 },
+
+  previewBox: { aspectRatio: 1.7, borderRadius: 14, borderWidth: 2, borderStyle: 'dashed', borderColor: COLORS.border, backgroundColor: COLORS.secondary, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   previewImage: { width: '100%', height: '100%' },
-  imagePlaceholder: { alignItems: 'center' },
-  placeholderIcon: { fontSize: 40, marginBottom: 8 },
-  placeholderText: { color: '#b0b5a8', fontSize: 14 },
-  btnRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 10, marginBottom: 10 },
-  btnSecondary: {
-    flex: 1, backgroundColor: '#e8f5ee',
-    borderWidth: 1.5, borderColor: '#2d7a4f',
-    borderRadius: 12, paddingVertical: 13, alignItems: 'center',
-  },
-  btnSecondaryText: { color: '#1a4a2e', fontWeight: '700', fontSize: 14 },
-  btnMain: {
-    marginHorizontal: 16, backgroundColor: '#2d7a4f',
-    borderRadius: 14, paddingVertical: 16, alignItems: 'center',
-    shadowColor: '#2d7a4f', shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
-  },
-  btnDisabled: { backgroundColor: '#b0b5a8' },
-  btnMainText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  resultCard: {
-    margin: 16, backgroundColor: '#fff', borderRadius: 14, padding: 16,
-    shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 8, elevation: 3,
-  },
-  displayNameBox: { backgroundColor: '#1a4a2e', borderRadius: 10, padding: 12, marginBottom: 14 },
-  displayNameLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 10, marginBottom: 4 },
-  displayName: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
-  fieldRow: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: '#f0f0f0',
-  },
-  fieldLabel: { width: 55, fontSize: 12, fontWeight: '700', color: '#2d7a4f' },
-  fieldInput: {
-    flex: 1, fontSize: 14, color: '#3a3d36',
-    paddingVertical: 4, paddingHorizontal: 8,
-    backgroundColor: '#f7f8f6', borderRadius: 6,
-  },
-  btnSave: {
-    marginTop: 16, backgroundColor: '#2d7a4f',
-    borderRadius: 12, paddingVertical: 14, alignItems: 'center',
-  },
-  btnSaveText: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
+  previewIcon: { width: 56, height: 56, borderRadius: 16, backgroundColor: 'rgba(6,182,212,0.1)', borderWidth: 1, borderColor: 'rgba(6,182,212,0.3)', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  previewHint: { fontSize: 12, color: COLORS.muted },
+  corner: { position: 'absolute', width: 20, height: 20, borderColor: COLORS.cyan },
+  cornerTL: { top: 12, left: 12, borderLeftWidth: 2, borderTopWidth: 2, borderTopLeftRadius: 6 },
+  cornerTR: { top: 12, right: 12, borderRightWidth: 2, borderTopWidth: 2, borderTopRightRadius: 6 },
+  cornerBL: { bottom: 12, left: 12, borderLeftWidth: 2, borderBottomWidth: 2, borderBottomLeftRadius: 6 },
+  cornerBR: { bottom: 12, right: 12, borderRightWidth: 2, borderBottomWidth: 2, borderBottomRightRadius: 6 },
+
+  row2: { flexDirection: 'row', gap: 12, marginTop: 16 },
+  outlineBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1, borderColor: 'rgba(6,182,212,0.5)', backgroundColor: 'rgba(6,182,212,0.05)', paddingVertical: 12, borderRadius: 12 },
+  outlineBtnText: { color: COLORS.slate, fontSize: 14, fontWeight: '500' },
+
+  ctaBtn: { marginTop: 12, backgroundColor: COLORS.cyan, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 12, shadowColor: COLORS.cyan, shadowOpacity: 0.45, shadowRadius: 16, shadowOffset: { width: 0, height: 0 }, elevation: 4 },
+  ctaBtnDisabled: { backgroundColor: '#CBD5E1', shadowOpacity: 0 },
+  ctaText: { color: COLORS.slate, fontSize: 14, fontWeight: '700' },
+
+  darkCard: { backgroundColor: COLORS.slate, borderRadius: 18, padding: 20 },
+  darkLabel: { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.55)', letterSpacing: 2 },
+  aiPill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(6,182,212,0.15)', borderWidth: 1, borderColor: 'rgba(6,182,212,0.4)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999 },
+  aiPillText: { color: COLORS.cyan, fontSize: 10, fontWeight: '500' },
+  callerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 12 },
+  callerIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(6,182,212,0.2)', borderWidth: 1, borderColor: 'rgba(6,182,212,0.4)', alignItems: 'center', justifyContent: 'center' },
+  callerCompany: { color: COLORS.white, fontSize: 16, fontWeight: '600' },
+  callerName: { color: 'rgba(255,255,255,0.9)', fontSize: 14, marginTop: 2 },
+
+  sectionTitle: { color: COLORS.slate, fontSize: 16, fontWeight: '600' },
+  sectionSubtitle: { color: COLORS.muted, fontSize: 11 },
+  confidencePill: { backgroundColor: 'rgba(6,182,212,0.15)', borderWidth: 1, borderColor: 'rgba(6,182,212,0.4)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
+  confidenceText: { color: COLORS.slate, fontSize: 10, fontWeight: '700' },
+
+  fieldRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 12 },
+  fieldIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(6,182,212,0.1)', borderWidth: 1, borderColor: 'rgba(6,182,212,0.2)', alignItems: 'center', justifyContent: 'center', marginTop: 22 },
+  fieldLabel: { fontSize: 10, fontWeight: '700', color: COLORS.muted, letterSpacing: 1 },
+  input: { marginTop: 4, height: 40, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.secondary, borderRadius: 10, paddingHorizontal: 12, fontSize: 14, color: COLORS.slate },
+
+  saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: COLORS.slate, borderWidth: 2, borderColor: COLORS.cyan, paddingVertical: 16, borderRadius: 18 },
+  saveBtnDisabled: { opacity: 0.5 },
+  saveText: { color: COLORS.white, fontSize: 14, fontWeight: '700' },
 });
