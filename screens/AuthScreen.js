@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import {
   SafeAreaView, View, Text, TextInput,
   TouchableOpacity, StyleSheet, ActivityIndicator,
-  Alert, KeyboardAvoidingView, Platform
+  Alert, KeyboardAvoidingView, Platform, Linking
 } from 'react-native';
 import { ScanLine } from 'lucide-react-native';
 import * as WebBrowser from 'expo-web-browser';
-import * as Linking from 'expo-linking';
 import { supabase } from '../supabase';
+import i18n from '../i18n';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -15,18 +15,28 @@ const C = {
   bg: '#F8FAFC', card: '#FFFFFF', slate: '#0F172A',
   cyan: '#06B6D4', text: '#334155', muted: '#64748B',
   border: '#E2E8F0', secondary: '#F1F5F9', white: '#FFFFFF',
+  error: '#EF4444',
 };
 
+const PRIVACY_URL = 'https://ssmshsoil-ship-it.github.io/namecard-scanner/privacy.html';
+const TERMS_URL   = 'https://ssmshsoil-ship-it.github.io/namecard-scanner/terms.html';
+
 export default function AuthScreen() {
-  const [mode, setMode]         = useState('login');
-  const [email, setEmail]       = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading]   = useState(false);
+  const [mode, setMode]           = useState('login');
+  const [email, setEmail]         = useState('');
+  const [password, setPassword]   = useState('');
+  const [loading, setLoading]     = useState(false);
+  const [agreeTerms, setAgreeTerms]     = useState(false);
+  const [agreePrivacy, setAgreePrivacy] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const handleAuth = async () => {
     if (!email || !password) {
-      Alert.alert('입력 오류', '이메일과 비밀번호를 입력해주세요.');
+      Alert.alert('오류', '이메일과 비밀번호를 입력해주세요.');
+      return;
+    }
+    if (mode === 'signup' && (!agreeTerms || !agreePrivacy)) {
+      Alert.alert('약관 동의 필요', '이용약관과 개인정보처리방침에 동의해주세요.');
       return;
     }
     setLoading(true);
@@ -34,7 +44,6 @@ export default function AuthScreen() {
       if (mode === 'signup') {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        Alert.alert('가입 완료', '이메일을 확인해주세요.');
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -47,6 +56,10 @@ export default function AuthScreen() {
   };
 
   const handleGoogleLogin = async () => {
+    if (mode === 'signup' && (!agreeTerms || !agreePrivacy)) {
+      Alert.alert('약관 동의 필요', '이용약관과 개인정보처리방침에 동의해주세요.');
+      return;
+    }
     setGoogleLoading(true);
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -57,34 +70,25 @@ export default function AuthScreen() {
         },
       });
       if (error) throw error;
-
       const result = await WebBrowser.openAuthSessionAsync(
-        data.url,
-        'com.ssmshsoil.bizcardscanner://auth/callback'
+        data.url, 'com.ssmshsoil.bizcardscanner://auth/callback'
       );
-
       if (result.type === 'success' && result.url) {
-        const parsed = Linking.parse(result.url);
-        const params = parsed.queryParams || {};
-        
-        // fragment에서 토큰 추출
         const fragment = result.url.split('#')[1];
         if (fragment) {
           const fragParams = new URLSearchParams(fragment);
-          const accessToken = fragParams.get('access_token');
+          const accessToken  = fragParams.get('access_token');
           const refreshToken = fragParams.get('refresh_token');
-          
           if (accessToken) {
-            const { error: sessionError } = await supabase.auth.setSession({
+            await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken || '',
             });
-            if (sessionError) throw sessionError;
           }
         }
       }
     } catch (e) {
-      Alert.alert('오류', '구글 로그인에 실패했습니다.\n' + e.message);
+      Alert.alert('오류', e.message);
     } finally {
       setGoogleLoading(false);
     }
@@ -99,86 +103,83 @@ export default function AuthScreen() {
             <ScanLine size={28} color={C.cyan} />
             <View style={styles.aiBadge}><Text style={styles.aiBadgeText}>AI</Text></View>
           </View>
-          <Text style={styles.appName}>BizCard Scanner</Text>
-          <Text style={styles.appSub}>AI-powered contact capture</Text>
+          <Text style={styles.appName}>{i18n.t('appName')}</Text>
+          <Text style={styles.appSub}>{i18n.t('appSub')}</Text>
         </View>
 
         <View style={styles.card}>
 
-          <TouchableOpacity
-            style={styles.googleBtn}
-            onPress={handleGoogleLogin}
-            disabled={googleLoading}
-          >
-            {googleLoading ? (
-              <ActivityIndicator color={C.slate} size="small" />
-            ) : (
-              <Text style={styles.googleIcon}>G</Text>
-            )}
-            <Text style={styles.googleText}>Google로 계속하기</Text>
+          {/* 구글 로그인 */}
+          <TouchableOpacity style={styles.googleBtn} onPress={handleGoogleLogin} disabled={googleLoading}>
+            {googleLoading ? <ActivityIndicator color={C.slate} size="small" /> : <Text style={styles.googleIcon}>G</Text>}
+            <Text style={styles.googleText}>{i18n.t('googleLogin')}</Text>
           </TouchableOpacity>
 
           <View style={styles.dividerRow}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>또는</Text>
+            <Text style={styles.dividerText}>{i18n.t('or')}</Text>
             <View style={styles.dividerLine} />
           </View>
 
+          {/* 탭 */}
           <View style={styles.tabRow}>
-            <TouchableOpacity
-              style={[styles.tab, mode === 'login' && styles.tabActive]}
-              onPress={() => setMode('login')}
-            >
-              <Text style={[styles.tabText, mode === 'login' && styles.tabTextActive]}>로그인</Text>
+            <TouchableOpacity style={[styles.tab, mode === 'login' && styles.tabActive]} onPress={() => setMode('login')}>
+              <Text style={[styles.tabText, mode === 'login' && styles.tabTextActive]}>{i18n.t('loginTitle')}</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.tab, mode === 'signup' && styles.tabActive]}
-              onPress={() => setMode('signup')}
-            >
-              <Text style={[styles.tabText, mode === 'signup' && styles.tabTextActive]}>회원가입</Text>
+            <TouchableOpacity style={[styles.tab, mode === 'signup' && styles.tabActive]} onPress={() => setMode('signup')}>
+              <Text style={[styles.tabText, mode === 'signup' && styles.tabTextActive]}>{i18n.t('signupTitle')}</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.inputBlock}>
             <Text style={styles.inputLabel}>EMAIL</Text>
-            <TextInput
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="이메일 주소"
-              placeholderTextColor={C.muted}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
+            <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder={i18n.t('emailPlaceholder')} placeholderTextColor={C.muted} keyboardType="email-address" autoCapitalize="none" />
           </View>
 
           <View style={styles.inputBlock}>
             <Text style={styles.inputLabel}>PASSWORD</Text>
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="비밀번호 (6자 이상)"
-              placeholderTextColor={C.muted}
-              secureTextEntry
-            />
+            <TextInput style={styles.input} value={password} onChangeText={setPassword} placeholder={i18n.t('passwordPlaceholder')} placeholderTextColor={C.muted} secureTextEntry />
           </View>
+
+          {/* 약관 동의 (회원가입 시만 표시) */}
+          {mode === 'signup' && (
+            <View style={styles.agreeSection}>
+              <TouchableOpacity style={styles.agreeRow} onPress={() => setAgreeTerms(!agreeTerms)}>
+                <View style={[styles.checkbox, agreeTerms && styles.checkboxActive]}>
+                  {agreeTerms && <Text style={styles.checkmark}>✓</Text>}
+                </View>
+                <Text style={styles.agreeText}>[필수] </Text>
+                <TouchableOpacity onPress={() => Linking.openURL(TERMS_URL)}>
+                  <Text style={styles.agreeLink}>이용약관</Text>
+                </TouchableOpacity>
+                <Text style={styles.agreeText}> 동의</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.agreeRow} onPress={() => setAgreePrivacy(!agreePrivacy)}>
+                <View style={[styles.checkbox, agreePrivacy && styles.checkboxActive]}>
+                  {agreePrivacy && <Text style={styles.checkmark}>✓</Text>}
+                </View>
+                <Text style={styles.agreeText}>[필수] </Text>
+                <TouchableOpacity onPress={() => Linking.openURL(PRIVACY_URL)}>
+                  <Text style={styles.agreeLink}>개인정보처리방침</Text>
+                </TouchableOpacity>
+                <Text style={styles.agreeText}> 동의</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           <TouchableOpacity
             style={[styles.btn, loading && styles.btnDisabled]}
             onPress={handleAuth}
             disabled={loading}
           >
-            {loading
-              ? <ActivityIndicator color={C.slate} />
-              : <Text style={styles.btnText}>{mode === 'login' ? '로그인' : '회원가입'}</Text>
-            }
+            {loading ? <ActivityIndicator color={C.slate} /> : <Text style={styles.btnText}>{mode === 'login' ? i18n.t('loginTitle') : i18n.t('signupTitle')}</Text>}
           </TouchableOpacity>
 
         </View>
 
         <View style={styles.freeBox}>
-          <Text style={styles.freeText}>🎁 가입 즉시 무료 크레딧 10장 제공</Text>
+          <Text style={styles.freeText}>{i18n.t('freeCredits')}</Text>
         </View>
 
       </KeyboardAvoidingView>
@@ -210,6 +211,13 @@ const styles = StyleSheet.create({
   inputBlock: { marginBottom: 16 },
   inputLabel: { fontSize: 10, fontWeight: '700', color: C.muted, letterSpacing: 1, marginBottom: 6 },
   input: { backgroundColor: C.secondary, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: C.slate, borderWidth: 1, borderColor: C.border },
+  agreeSection: { marginBottom: 16, gap: 10 },
+  agreeRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  checkbox: { width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', backgroundColor: C.secondary },
+  checkboxActive: { backgroundColor: C.cyan, borderColor: C.cyan },
+  checkmark: { color: C.white, fontSize: 12, fontWeight: '900' },
+  agreeText: { fontSize: 13, color: C.text },
+  agreeLink: { fontSize: 13, color: C.cyan, fontWeight: '700', textDecorationLine: 'underline' },
   btn: { backgroundColor: C.cyan, borderRadius: 14, paddingVertical: 15, alignItems: 'center', marginTop: 4, shadowColor: C.cyan, shadowOpacity: 0.4, shadowRadius: 12, elevation: 4 },
   btnDisabled: { backgroundColor: '#CBD5E1', shadowOpacity: 0 },
   btnText: { color: C.slate, fontSize: 15, fontWeight: '800' },

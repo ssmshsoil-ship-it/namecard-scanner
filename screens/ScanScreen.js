@@ -6,11 +6,12 @@ import {
 import {
   Camera, Image as ImageIcon, Phone, Building2, MapPin,
   User, Briefcase, Smartphone, PhoneCall, Printer,
-  Mail, Globe, UserPlus, ScanLine, Sparkles, LogOut, Zap,
+  Mail, Globe, UserPlus, ScanLine, Sparkles, Settings, Zap,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Contacts from 'expo-contacts';
 import { supabase } from '../supabase';
+import i18n from '../i18n';
 
 const CLAUDE_API_KEY = process.env.EXPO_PUBLIC_CLAUDE_API_KEY;
 const API_URL = 'https://api.anthropic.com/v1/messages';
@@ -21,25 +22,25 @@ const C = {
   border: '#E2E8F0', secondary: '#F1F5F9', white: '#FFFFFF',
 };
 
-const FIELD_DEFS = [
-  { key: 'company', Icon: Building2, label: 'Company' },
-  { key: 'branch',  Icon: MapPin,    label: 'Branch' },
-  { key: 'name',    Icon: User,      label: 'Name' },
-  { key: 'title',   Icon: Briefcase, label: 'Title' },
-  { key: 'mobile',  Icon: Smartphone,label: 'Mobile',   keyboardType: 'phone-pad' },
-  { key: 'tel',     Icon: PhoneCall, label: 'Work Tel', keyboardType: 'phone-pad' },
-  { key: 'fax',     Icon: Printer,   label: 'Fax',      keyboardType: 'phone-pad' },
-  { key: 'email',   Icon: Mail,      label: 'Email',    keyboardType: 'email-address' },
-  { key: 'address', Icon: MapPin,    label: 'Address' },
-  { key: 'url',     Icon: Globe,     label: 'Website',  keyboardType: 'url' },
+const FIELD_DEFS = () => [
+  { key: 'company', Icon: Building2, label: i18n.t('company') },
+  { key: 'branch',  Icon: MapPin,    label: i18n.t('branch') },
+  { key: 'name',    Icon: User,      label: i18n.t('name') },
+  { key: 'title',   Icon: Briefcase, label: i18n.t('title') },
+  { key: 'mobile',  Icon: Smartphone,label: i18n.t('mobile'),  keyboardType: 'phone-pad' },
+  { key: 'tel',     Icon: PhoneCall, label: i18n.t('workTel'), keyboardType: 'phone-pad' },
+  { key: 'fax',     Icon: Printer,   label: i18n.t('fax'),     keyboardType: 'phone-pad' },
+  { key: 'email',   Icon: Mail,      label: i18n.t('email'),   keyboardType: 'email-address' },
+  { key: 'address', Icon: MapPin,    label: i18n.t('address') },
+  { key: 'url',     Icon: Globe,     label: i18n.t('website'), keyboardType: 'url' },
 ];
 
-export default function ScanScreen({ user }) {
+export default function ScanScreen({ user, credits, setCredits, onOpenSettings }) {
   const [image, setImage]     = useState(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult]   = useState(null);
   const [saving, setSaving]   = useState(false);
-  const [credits, setCredits] = useState(0);
+  
 
   useEffect(() => { fetchCredits(); }, []);
 
@@ -56,11 +57,11 @@ export default function ScanScreen({ user }) {
     let pickerResult;
     if (useCamera) {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== 'granted') { Alert.alert('권한 필요', '카메라 권한이 필요합니다.'); return; }
+      if (status !== 'granted') { Alert.alert(i18n.t('errorTitle'), i18n.t('permCamera')); return; }
       pickerResult = await ImagePicker.launchCameraAsync({ base64: true, quality: 0.8 });
     } else {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') { Alert.alert('권한 필요', '갤러리 권한이 필요합니다.'); return; }
+      if (status !== 'granted') { Alert.alert(i18n.t('errorTitle'), i18n.t('permGallery')); return; }
       pickerResult = await ImagePicker.launchImageLibraryAsync({ base64: true, quality: 0.8 });
     }
     if (!pickerResult.canceled) { setImage(pickerResult.assets[0]); setResult(null); }
@@ -69,7 +70,7 @@ export default function ScanScreen({ user }) {
   const analyze = async () => {
     if (!image) return;
     if (credits <= 0) {
-      Alert.alert('크레딧 부족', '크레딧이 없습니다. 충전해주세요.');
+      Alert.alert(i18n.t('errorTitle'), i18n.t('noCredits'));
       return;
     }
     setLoading(true);
@@ -99,20 +100,16 @@ export default function ScanScreen({ user }) {
       const parsed = JSON.parse(text);
       setResult(parsed);
 
-      // 크레딧 차감
       await supabase
         .from('user_credits')
         .update({ credits: credits - 1, updated_at: new Date().toISOString() })
         .eq('user_id', user.id);
       setCredits(prev => prev - 1);
 
-      // 스캔 기록 저장
-      await supabase.from('scan_history').insert({
-        user_id: user.id, ...parsed
-      });
+      await supabase.from('scan_history').insert({ user_id: user.id, ...parsed });
 
     } catch (e) {
-      Alert.alert('오류', '명함 분석에 실패했습니다.\n' + e.message);
+      Alert.alert(i18n.t('errorTitle'), i18n.t('errorScan'));
     } finally {
       setLoading(false);
     }
@@ -126,7 +123,7 @@ export default function ScanScreen({ user }) {
     setSaving(true);
     try {
       const { status } = await Contacts.requestPermissionsAsync();
-      if (status !== 'granted') { Alert.alert('권한 필요', '연락처 권한이 필요합니다.'); return; }
+      if (status !== 'granted') { Alert.alert(i18n.t('errorTitle'), i18n.t('permContacts')); return; }
       const displayName = buildDisplayName(result);
       const contact = {
         [Contacts.Fields.FirstName]: displayName,
@@ -142,26 +139,22 @@ export default function ScanScreen({ user }) {
       if (result.company) contact[Contacts.Fields.Company]  = result.company;
       if (result.title)   contact[Contacts.Fields.JobTitle] = result.title;
       await Contacts.addContactAsync(contact);
-      Alert.alert('✅ 저장 완료', `"${displayName}"\n연락처에 저장됐습니다.`);
+      Alert.alert(i18n.t('savedSuccess'), `"${displayName}" ${i18n.t('savedMsg')}`);
     } catch (e) {
-      Alert.alert('오류', '연락처 저장에 실패했습니다.');
+      Alert.alert(i18n.t('errorTitle'), i18n.t('errorSave'));
     } finally {
       setSaving(false);
     }
   };
 
   const updateField = (key, value) => setResult(prev => ({ ...prev, [key]: value }));
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-  };
+  const handleLogout = async () => { await supabase.auth.signOut(); };
 
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="light-content" backgroundColor={C.slate} />
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 40, backgroundColor: C.bg }} showsVerticalScrollIndicator={false}>
 
-        {/* 헤더 */}
         <View style={styles.header}>
           <View style={styles.headerRow}>
             <View style={styles.headerLeft}>
@@ -170,33 +163,29 @@ export default function ScanScreen({ user }) {
                 <View style={styles.aiBadge}><Text style={styles.aiBadgeText}>AI</Text></View>
               </View>
               <View>
-                <Text style={styles.headerTitle}>BizCard Scanner</Text>
-                <Text style={styles.headerSubtitle}>AI-powered contact capture</Text>
+                <Text style={styles.headerTitle}>{i18n.t('appName')}</Text>
+                <Text style={styles.headerSubtitle}>{i18n.t('appSub')}</Text>
               </View>
             </View>
             <View style={styles.headerRight}>
-              {/* 크레딧 표시 */}
               <View style={styles.creditBadge}>
                 <Zap size={12} color={C.cyan} />
                 <Text style={styles.creditText}>{credits}</Text>
               </View>
-              {/* 로그아웃 */}
-              <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-                <LogOut size={16} color="rgba(255,255,255,0.7)" />
+              <TouchableOpacity style={styles.logoutBtn} onPress={onOpenSettings}>
+                <Settings size={16} color="rgba(255,255,255,0.7)" />
               </TouchableOpacity>
             </View>
           </View>
         </View>
 
         <View style={styles.main}>
-
-          {/* Card Preview */}
           <View style={styles.card}>
             <View style={styles.cardHeaderRow}>
-              <Text style={styles.cardLabel}>Card Preview</Text>
+              <Text style={styles.cardLabel}>{i18n.t('cardPreview')}</Text>
               <View style={styles.readyPill}>
                 <View style={styles.readyDot} />
-                <Text style={styles.readyText}>READY</Text>
+                <Text style={styles.readyText}>{i18n.t('ready').toUpperCase()}</Text>
               </View>
             </View>
 
@@ -205,10 +194,8 @@ export default function ScanScreen({ user }) {
                 <Image source={{ uri: image.uri }} style={styles.previewImage} resizeMode="contain" />
               ) : (
                 <>
-                  <View style={styles.previewIcon}>
-                    <Camera size={24} color={C.cyan} />
-                  </View>
-                  <Text style={styles.previewHint}>Capture or upload a business card</Text>
+                  <View style={styles.previewIcon}><Camera size={24} color={C.cyan} /></View>
+                  <Text style={styles.previewHint}>{i18n.t('capture')}</Text>
                 </>
               )}
               <View style={[styles.corner, styles.cornerTL]} />
@@ -220,11 +207,11 @@ export default function ScanScreen({ user }) {
             <View style={styles.row2}>
               <TouchableOpacity style={styles.outlineBtn} onPress={() => pickImage(true)}>
                 <Camera size={16} color={C.cyan} />
-                <Text style={styles.outlineBtnText}>Camera</Text>
+                <Text style={styles.outlineBtnText}>{i18n.t('camera')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.outlineBtn} onPress={() => pickImage(false)}>
                 <ImageIcon size={16} color={C.cyan} />
-                <Text style={styles.outlineBtnText}>Gallery</Text>
+                <Text style={styles.outlineBtnText}>{i18n.t('gallery')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -234,31 +221,24 @@ export default function ScanScreen({ user }) {
               disabled={!image || loading || credits <= 0}
               activeOpacity={0.85}
             >
-              {loading ? (
-                <ActivityIndicator color={C.slate} size="small" />
-              ) : (
-                <Sparkles size={16} color={C.slate} />
-              )}
+              {loading ? <ActivityIndicator color={C.slate} size="small" /> : <Sparkles size={16} color={C.slate} />}
               <Text style={styles.ctaText}>
-                {loading ? 'Analyzing...' : credits <= 0 ? '크레딧 부족' : 'Scan Business Card'}
+                {loading ? i18n.t('analyzing') : credits <= 0 ? i18n.t('noCredits') : i18n.t('scan')}
               </Text>
             </TouchableOpacity>
           </View>
 
-          {/* Caller ID Preview */}
           {result && (
             <View style={styles.darkCard}>
               <View style={styles.cardHeaderRow}>
-                <Text style={styles.darkLabel}>CALLER ID PREVIEW</Text>
+                <Text style={styles.darkLabel}>{i18n.t('callerID')}</Text>
                 <View style={styles.aiPill}>
                   <Sparkles size={11} color={C.cyan} />
                   <Text style={styles.aiPillText}>AI</Text>
                 </View>
               </View>
               <View style={styles.callerRow}>
-                <View style={styles.callerIcon}>
-                  <Phone size={20} color={C.cyan} />
-                </View>
+                <View style={styles.callerIcon}><Phone size={20} color={C.cyan} /></View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.callerCompany}>
                     {[result.company, result.branch].filter(Boolean).join(' · ')}
@@ -272,25 +252,21 @@ export default function ScanScreen({ user }) {
             </View>
           )}
 
-          {/* Extracted Details */}
           {result && (
             <View style={styles.card}>
               <View style={styles.cardHeaderRow}>
                 <View>
-                  <Text style={styles.sectionTitle}>Extracted Details</Text>
-                  <Text style={styles.sectionSubtitle}>Tap any field to edit</Text>
+                  <Text style={styles.sectionTitle}>{i18n.t('extractedDetails')}</Text>
+                  <Text style={styles.sectionSubtitle}>{i18n.t('tapToEdit')}</Text>
                 </View>
                 <View style={styles.confidencePill}>
-                  <Text style={styles.confidenceText}>98% confidence</Text>
+                  <Text style={styles.confidenceText}>{i18n.t('confidence')}</Text>
                 </View>
               </View>
-
               <View style={{ marginTop: 12 }}>
-                {FIELD_DEFS.map(({ key, Icon, label, keyboardType }) => (
+                {FIELD_DEFS().map(({ key, Icon, label, keyboardType }) => (
                   <View key={key} style={styles.fieldRow}>
-                    <View style={styles.fieldIcon}>
-                      <Icon size={16} color={C.cyan} />
-                    </View>
+                    <View style={styles.fieldIcon}><Icon size={16} color={C.cyan} /></View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.fieldLabel}>{label.toUpperCase()}</Text>
                       <TextInput
@@ -315,16 +291,10 @@ export default function ScanScreen({ user }) {
               disabled={saving}
               activeOpacity={0.85}
             >
-              {saving
-                ? <ActivityIndicator color={C.white} size="small" />
-                : <UserPlus size={16} color={C.white} />
-              }
-              <Text style={styles.saveText}>
-                {saving ? 'Saving...' : 'Save to Contacts'}
-              </Text>
+              {saving ? <ActivityIndicator color={C.white} size="small" /> : <UserPlus size={16} color={C.white} />}
+              <Text style={styles.saveText}>{saving ? i18n.t('saving') : i18n.t('saveContacts')}</Text>
             </TouchableOpacity>
           )}
-
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -332,8 +302,8 @@ export default function ScanScreen({ user }) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.bg },
-  header: { backgroundColor: C.slate, paddingHorizontal: 20, paddingTop: 48, paddingBottom: 56 },
+  safe: { flex: 1, backgroundColor: C.slate },
+  header: { backgroundColor: C.slate, paddingHorizontal: 20, paddingTop: 48, paddingBottom: 32 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -345,9 +315,7 @@ const styles = StyleSheet.create({
   creditBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(6,182,212,0.15)', borderWidth: 1, borderColor: 'rgba(6,182,212,0.4)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
   creditText: { color: C.cyan, fontSize: 13, fontWeight: '700' },
   logoutBtn: { padding: 6 },
-  historyBtn: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999 },
-  historyText: { color: 'rgba(255,255,255,0.8)', fontSize: 11 },
-  main: { paddingHorizontal: 16, marginTop: -24, gap: 16 },
+  main: { paddingHorizontal: 16, marginTop: 16, gap: 16 },
   card: { backgroundColor: C.card, borderRadius: 18, padding: 16, shadowColor: C.slate, shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 3 },
   cardHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   cardLabel: { fontSize: 12, fontWeight: '500', color: C.muted },

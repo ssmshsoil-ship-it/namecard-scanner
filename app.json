@@ -1,37 +1,50 @@
 {
-  "expo": {
-    "name": "namecard-scanner",
-    "slug": "namecard-scanner",
-    "version": "1.0.0",
-    "scheme": "com.ssmshsoil.bizcardscanner",
-    "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "ios": {
-      "supportsTablet": true
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "package": "com.ssmshsoil.bizcardscanner"
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
-    "extra": {
-      "eas": {
-        "projectId": "ebe0614d-e845-40a9-b417-67d8e16935d9"
-      }
-    },
-    "plugins": [
-      "expo-web-browser"
-    ]
-  }
+    "expo":  {
+                 "name":  "Business Card Scanner",
+                 "slug":  "namecard-scanner",
+                 "version":  "1.0.0",
+                 "orientation":  "portrait",
+                 "icon":  "./assets/icon.png",
+                 "scheme":  "com.ssmshsoil.bizcardscanner",
+                 "userInterfaceStyle":  "light",
+                 "splash":  {
+                                "image":  "./assets/splash.png",
+                                "resizeMode":  "contain",
+                                "backgroundColor":  "#0F172A"
+                            },
+                 "ios":  {
+                             "supportsTablet":  true,
+                             "bundleIdentifier":  "com.ssmshsoil.bizcardscanner",
+                             "infoPlist":  {
+                                               "NSCameraUsageDescription":  "명함 촬영을 위해 카메라가 필요합니다.",
+                                               "NSContactsUsageDescription":  "명함 정보를 연락처에 저장하기 위해 필요합니다.",
+                                               "NSPhotoLibraryUsageDescription":  "갤러리에서 명함 이미지를 선택하기 위해 필요합니다."
+                                           }
+                         },
+                 "android":  {
+                                 "adaptiveIcon":  {
+                                                      "foregroundImage":  "./assets/adaptive-icon.png",
+                                                      "backgroundColor":  "#0F172A"
+                                                  },
+                                 "package":  "com.ssmshsoil.bizcardscanner",
+                                 "versionCode":  1,
+                                 "permissions":  [
+                                                     "android.permission.CAMERA",
+                                                     "android.permission.READ_CONTACTS",
+                                                     "android.permission.WRITE_CONTACTS",
+                                                     "android.permission.READ_EXTERNAL_STORAGE"
+                                                 ]
+                             },
+                 "web":  {
+                             "favicon":  "./assets/favicon.png"
+                         },
+                 "extra":  {
+                               "eas":  {
+                                           "projectId":  "ebe0614d-e845-40a9-b417-67d8e16935d9"
+                                       }
+                           },
+                 "plugins":  [
+                                 "expo-localization"
+                             ]
+             }
 }

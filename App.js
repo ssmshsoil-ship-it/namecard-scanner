@@ -1,25 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Modal } from 'react-native';
 import { supabase } from './supabase';
 import AuthScreen from './screens/AuthScreen';
 import ScanScreen from './screens/ScanScreen';
+import SettingsScreen from './screens/SettingsScreen';
 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
   const [user, setUser]       = useState(null);
   const [loading, setLoading] = useState(true);
+  const [credits, setCredits] = useState(0);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
-    // 현재 세션 확인
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    // 로그인/로그아웃 감지
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
@@ -40,7 +41,27 @@ export default function App() {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {user ? (
           <Stack.Screen name="Scan">
-            {() => <ScanScreen user={user} />}
+            {() => (
+              <>
+                <ScanScreen
+                  user={user}
+                  credits={credits}
+                  setCredits={setCredits}
+                  onOpenSettings={() => setShowSettings(true)}
+                />
+                <Modal
+                  visible={showSettings}
+                  animationType="slide"
+                  presentationStyle="pageSheet"
+                >
+                  <SettingsScreen
+                    user={user}
+                    credits={credits}
+                    onClose={() => setShowSettings(false)}
+                  />
+                </Modal>
+              </>
+            )}
           </Stack.Screen>
         ) : (
           <Stack.Screen name="Auth" component={AuthScreen} />
