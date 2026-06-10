@@ -6,14 +6,16 @@ import { supabase } from './supabase';
 import AuthScreen from './screens/AuthScreen';
 import ScanScreen from './screens/ScanScreen';
 import SettingsScreen from './screens/SettingsScreen';
+import CreditScreen from './screens/CreditScreen';
 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
-  const [user, setUser]       = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [credits, setCredits] = useState(0);
+  const [user, setUser]         = useState(null);
+  const [loading, setLoading]   = useState(true);
+  const [credits, setCredits]   = useState(0);
   const [showSettings, setShowSettings] = useState(false);
+  const [showCredits, setShowCredits]   = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -48,16 +50,22 @@ export default function App() {
                   credits={credits}
                   setCredits={setCredits}
                   onOpenSettings={() => setShowSettings(true)}
+                  onOpenCredits={() => setShowCredits(true)}
                 />
-                <Modal
-                  visible={showSettings}
-                  animationType="slide"
-                  presentationStyle="pageSheet"
-                >
+                <Modal visible={showSettings} animationType="slide" presentationStyle="pageSheet">
                   <SettingsScreen
                     user={user}
                     credits={credits}
                     onClose={() => setShowSettings(false)}
+                    onOpenCredits={() => { setShowSettings(false); setShowCredits(true); }}
+                  />
+                </Modal>
+                <Modal visible={showCredits} animationType="slide" presentationStyle="pageSheet">
+                  <CreditScreen
+                    user={user}
+                    credits={credits}
+                    setCredits={setCredits}
+                    onClose={() => setShowCredits(false)}
                   />
                 </Modal>
               </>

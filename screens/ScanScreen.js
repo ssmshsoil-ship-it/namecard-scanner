@@ -35,12 +35,11 @@ const FIELD_DEFS = () => [
   { key: 'url',     Icon: Globe,     label: i18n.t('website'), keyboardType: 'url' },
 ];
 
-export default function ScanScreen({ user, credits, setCredits, onOpenSettings }) {
+export default function ScanScreen({ user, credits, setCredits, onOpenSettings, onOpenCredits }) {
   const [image, setImage]     = useState(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult]   = useState(null);
   const [saving, setSaving]   = useState(false);
-  
 
   useEffect(() => { fetchCredits(); }, []);
 
@@ -99,15 +98,11 @@ export default function ScanScreen({ user, credits, setCredits, onOpenSettings }
       const text = data.content[0].text.trim().replace(/```json|```/g, '').trim();
       const parsed = JSON.parse(text);
       setResult(parsed);
-
       await supabase
         .from('user_credits')
         .update({ credits: credits - 1, updated_at: new Date().toISOString() })
         .eq('user_id', user.id);
       setCredits(prev => prev - 1);
-
-      await supabase.from('scan_history').insert({ user_id: user.id, ...parsed });
-
     } catch (e) {
       Alert.alert(i18n.t('errorTitle'), i18n.t('errorScan'));
     } finally {
@@ -148,13 +143,16 @@ export default function ScanScreen({ user, credits, setCredits, onOpenSettings }
   };
 
   const updateField = (key, value) => setResult(prev => ({ ...prev, [key]: value }));
-  const handleLogout = async () => { await supabase.auth.signOut(); };
 
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="light-content" backgroundColor={C.slate} />
-      <ScrollView contentContainerStyle={{ paddingBottom: 40, backgroundColor: C.bg }} showsVerticalScrollIndicator={false}>
-
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* 헤더 */}
         <View style={styles.header}>
           <View style={styles.headerRow}>
             <View style={styles.headerLeft}>
@@ -168,11 +166,11 @@ export default function ScanScreen({ user, credits, setCredits, onOpenSettings }
               </View>
             </View>
             <View style={styles.headerRight}>
-              <View style={styles.creditBadge}>
+              <TouchableOpacity style={styles.creditBadge} onPress={onOpenCredits}>
                 <Zap size={12} color={C.cyan} />
                 <Text style={styles.creditText}>{credits}</Text>
-              </View>
-              <TouchableOpacity style={styles.logoutBtn} onPress={onOpenSettings}>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.settingsBtn} onPress={onOpenSettings}>
                 <Settings size={16} color="rgba(255,255,255,0.7)" />
               </TouchableOpacity>
             </View>
@@ -180,6 +178,7 @@ export default function ScanScreen({ user, credits, setCredits, onOpenSettings }
         </View>
 
         <View style={styles.main}>
+          {/* Card Preview */}
           <View style={styles.card}>
             <View style={styles.cardHeaderRow}>
               <Text style={styles.cardLabel}>{i18n.t('cardPreview')}</Text>
@@ -228,6 +227,7 @@ export default function ScanScreen({ user, credits, setCredits, onOpenSettings }
             </TouchableOpacity>
           </View>
 
+          {/* Caller ID Preview */}
           {result && (
             <View style={styles.darkCard}>
               <View style={styles.cardHeaderRow}>
@@ -252,6 +252,7 @@ export default function ScanScreen({ user, credits, setCredits, onOpenSettings }
             </View>
           )}
 
+          {/* Extracted Details */}
           {result && (
             <View style={styles.card}>
               <View style={styles.cardHeaderRow}>
@@ -302,7 +303,9 @@ export default function ScanScreen({ user, credits, setCredits, onOpenSettings }
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.slate },
+  safe: { flex: 1, backgroundColor: C.bg },
+  scrollView: { flex: 1, backgroundColor: C.bg },
+  scrollContent: { paddingBottom: 60, backgroundColor: C.bg },
   header: { backgroundColor: C.slate, paddingHorizontal: 20, paddingTop: 48, paddingBottom: 32 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -314,8 +317,8 @@ const styles = StyleSheet.create({
   headerSubtitle: { color: 'rgba(255,255,255,0.55)', fontSize: 11 },
   creditBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(6,182,212,0.15)', borderWidth: 1, borderColor: 'rgba(6,182,212,0.4)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
   creditText: { color: C.cyan, fontSize: 13, fontWeight: '700' },
-  logoutBtn: { padding: 6 },
-  main: { paddingHorizontal: 16, marginTop: 16, gap: 16 },
+  settingsBtn: { padding: 6 },
+  main: { paddingHorizontal: 16, paddingTop: 16, gap: 16 },
   card: { backgroundColor: C.card, borderRadius: 18, padding: 16, shadowColor: C.slate, shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 3 },
   cardHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   cardLabel: { fontSize: 12, fontWeight: '500', color: C.muted },

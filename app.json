@@ -1,50 +1,51 @@
 {
-    "expo":  {
-                 "name":  "Business Card Scanner",
-                 "slug":  "namecard-scanner",
-                 "version":  "1.0.0",
-                 "orientation":  "portrait",
-                 "icon":  "./assets/icon.png",
-                 "scheme":  "com.ssmshsoil.bizcardscanner",
-                 "userInterfaceStyle":  "light",
-                 "splash":  {
-                                "image":  "./assets/splash.png",
-                                "resizeMode":  "contain",
-                                "backgroundColor":  "#0F172A"
-                            },
-                 "ios":  {
-                             "supportsTablet":  true,
-                             "bundleIdentifier":  "com.ssmshsoil.bizcardscanner",
-                             "infoPlist":  {
-                                               "NSCameraUsageDescription":  "¸íÇÔ ÃÔ¿µÀ» À§ÇØ Ä«¸Þ¶ó°¡ ÇÊ¿äÇÕ´Ï´Ù.",
-                                               "NSContactsUsageDescription":  "¸íÇÔ Á¤º¸¸¦ ¿¬¶ôÃ³¿¡ ÀúÀåÇÏ±â À§ÇØ ÇÊ¿äÇÕ´Ï´Ù.",
-                                               "NSPhotoLibraryUsageDescription":  "°¶·¯¸®¿¡¼­ ¸íÇÔ ÀÌ¹ÌÁö¸¦ ¼±ÅÃÇÏ±â À§ÇØ ÇÊ¿äÇÕ´Ï´Ù."
-                                           }
-                         },
-                 "android":  {
-                                 "adaptiveIcon":  {
-                                                      "foregroundImage":  "./assets/adaptive-icon.png",
-                                                      "backgroundColor":  "#0F172A"
-                                                  },
-                                 "package":  "com.ssmshsoil.bizcardscanner",
-                                 "versionCode":  1,
-                                 "permissions":  [
-                                                     "android.permission.CAMERA",
-                                                     "android.permission.READ_CONTACTS",
-                                                     "android.permission.WRITE_CONTACTS",
-                                                     "android.permission.READ_EXTERNAL_STORAGE"
-                                                 ]
-                             },
-                 "web":  {
-                             "favicon":  "./assets/favicon.png"
-                         },
-                 "extra":  {
-                               "eas":  {
-                                           "projectId":  "ebe0614d-e845-40a9-b417-67d8e16935d9"
-                                       }
-                           },
-                 "plugins":  [
-                                 "expo-localization"
-                             ]
-             }
+  "expo": {
+    "name": "Business Card Scanner",
+    "slug": "namecard-scanner",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "com.ssmshsoil.bizcardscanner",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F172A"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ssmshsoil.bizcardscanner",
+      "infoPlist": {
+        "NSCameraUsageDescription": "ï¿½ï¿½ï¿½ï¿½ ï¿½Ô¿ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ Ä«ï¿½Þ¶ï¿½ ï¿½Ê¿ï¿½ï¿½Õ´Ï´ï¿½.",
+        "NSContactsUsageDescription": "ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ã³ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï±ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ê¿ï¿½ï¿½Õ´Ï´ï¿½.",
+        "NSPhotoLibraryUsageDescription": "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ì¹ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï±ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ê¿ï¿½ï¿½Õ´Ï´ï¿½."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0F172A"
+      },
+      "package": "com.ssmshsoil.bizcardscanner",
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_CONTACTS",
+        "android.permission.WRITE_CONTACTS",
+        "android.permission.READ_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "ebe0614d-e845-40a9-b417-67d8e16935d9"
+      }
+    },
+    "plugins": [
+      "expo-localization",
+      "expo-web-browser"
+    ]
+  }
 }
