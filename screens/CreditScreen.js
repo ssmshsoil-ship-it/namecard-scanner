@@ -4,10 +4,8 @@ import {
   StatusBar, SafeAreaView, ActivityIndicator, Alert, Platform,
 } from 'react-native';
 import { X, Zap, Check, Smartphone } from 'lucide-react-native';
-import { getProducts, requestPurchase, purchaseUpdatedListener, purchaseErrorListener, finishTransaction } from 'expo-iap';
 import { supabase } from '../supabase';
 
-// ── 상품 ID (Android/iOS 공통) ─────────────────────────────
 const PRODUCT_IDS = [
   'com.ssmshsoil.bizcardscanner.credits_30',
   'com.ssmshsoil.bizcardscanner.credits_100',
@@ -15,9 +13,9 @@ const PRODUCT_IDS = [
 ];
 
 const PLANS_DEFAULT = [
-  { id: 'com.ssmshsoil.bizcardscanner.credits_30',  qty: 30,  name: '라이트',   popular: false },
-  { id: 'com.ssmshsoil.bizcardscanner.credits_100', qty: 100, name: '스탠다드', popular: true },
-  { id: 'com.ssmshsoil.bizcardscanner.credits_200', qty: 200, name: '프로',     popular: false },
+  { id: PRODUCT_IDS[0], qty: 30,  name: '라이트',   price: '₩1,500', popular: false },
+  { id: PRODUCT_IDS[1], qty: 100, name: '스탠다드', price: '₩2,900', popular: true },
+  { id: PRODUCT_IDS[2], qty: 200, name: '프로',     price: '₩4,500', popular: false },
 ];
 
 const C = {
@@ -27,109 +25,104 @@ const C = {
   border: '#ECECE8', white: '#FFFFFF',
 };
 
-export default function CreditScreen({ user, credits, setCredits, onClose }) {
-  const [selected, setSelected]   = useState(PRODUCT_IDS[1]);
-  const [products, setProducts]   = useState([]);
-  const [loading, setLoading]     = useState(false);
-  const [loadingProducts, setLoadingProducts] = useState(true);
+// expo-iap 안전하게 로드
+let iapModule = null;
+try {
+  iapModule = require('expo-iap');
+} catch (e) {
+  console.log('expo-iap 로드 실패:', e);
+}
 
-  // ── 상품 로드 ─────────────────────────────────────────────
+export default function CreditScreen({ user, credits, setCredits, onClose }) {
+  const [selected, setSelected]           = useState(PRODUCT_IDS[1]);
+  const [products, setProducts]           = useState([]);
+  const [loading, setLoading]             = useState(false);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [iapAvailable, setIapAvailable]   = useState(false);
+
   useEffect(() => {
-    loadProducts();
-    const purchaseListener = purchaseUpdatedListener(handlePurchaseUpdate);
-    const errorListener    = purchaseErrorListener(handlePurchaseError);
-    return () => {
-      purchaseListener.remove();
-      errorListener.remove();
-    };
+    initIAP();
+    return () => cleanupIAP();
   }, []);
 
-  const loadProducts = async () => {
+  let purchaseListener = null;
+  let errorListener    = null;
+
+  const initIAP = async () => {
+    if (!iapModule) return;
     try {
       setLoadingProducts(true);
+      const { getProducts, purchaseUpdatedListener, purchaseErrorListener } = iapModule;
+      purchaseListener = purchaseUpdatedListener(handlePurchaseUpdate);
+      errorListener    = purchaseErrorListener(handlePurchaseError);
       const result = await getProducts({ skus: PRODUCT_IDS });
       if (result && result.length > 0) {
         setProducts(result);
+        setIapAvailable(true);
       }
     } catch (e) {
-      console.log('상품 로드 오류:', e);
+      console.log('IAP 초기화 오류 (정상):', e.message);
+      setIapAvailable(false);
     } finally {
       setLoadingProducts(false);
     }
   };
 
-  // ── 구매 성공 처리 ────────────────────────────────────────
+  const cleanupIAP = () => {
+    try { purchaseListener?.remove(); errorListener?.remove(); } catch (e) {}
+  };
+
   const handlePurchaseUpdate = async (purchase) => {
     if (!purchase) return;
     setLoading(true);
     try {
-      // 서버 검증 요청
       const { data, error } = await supabase.functions.invoke('verify-purchase', {
         body: {
           platform: Platform.OS,
           productId: purchase.productId,
-          // Android: purchaseToken, iOS: transactionId + receipt
           purchaseToken: purchase.purchaseToken || null,
           transactionId: purchase.transactionId || null,
           transactionReceipt: purchase.transactionReceipt || null,
           userId: user.id,
         },
       });
-
-      if (error || !data?.success) {
-        throw new Error(error?.message || '구매 검증 실패');
-      }
-
-      // 거래 완료 처리 (중복 방지)
-      await finishTransaction({ purchase, isConsumable: true });
-
-      // 크레딧 업데이트
+      if (error || !data?.success) throw new Error(error?.message || '구매 검증 실패');
+      try { await iapModule?.finishTransaction({ purchase, isConsumable: true }); } catch (e) {}
       const qty = data.credits;
       const newCredits = credits + qty;
       await supabase.from('user_credits')
         .update({ credits: newCredits, updated_at: new Date().toISOString() })
         .eq('user_id', user.id);
       setCredits(newCredits);
-
-      Alert.alert('충전 완료! 🎉', qty + '장이 충전되었습니다.', [
-        { text: '확인', onPress: onClose }
-      ]);
+      Alert.alert('충전 완료! 🎉', qty + '장이 충전되었습니다.', [{ text: '확인', onPress: onClose }]);
     } catch (e) {
       Alert.alert('오류', e.message || '구매 처리 중 오류가 발생했습니다.');
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const handlePurchaseError = (error) => {
-    if (error.code !== 'E_USER_CANCELLED') {
-      Alert.alert('결제 오류', error.message);
-    }
+    if (error.code !== 'E_USER_CANCELLED') Alert.alert('결제 오류', error.message);
     setLoading(false);
   };
 
-  // ── 구매 시작 ─────────────────────────────────────────────
   const handlePurchase = async () => {
     if (!selected || loading) return;
+    if (!iapAvailable || !iapModule) {
+      Alert.alert('결제 준비 중', '인앱 결제가 아직 준비되지 않았습니다.\n사업자 등록 후 활성화됩니다.\n\n문의: ssmkra@gmail.com');
+      return;
+    }
     setLoading(true);
     try {
-      await requestPurchase({ sku: selected });
+      await iapModule.requestPurchase({ sku: selected });
     } catch (e) {
-      if (e.code !== 'E_USER_CANCELLED') {
-        Alert.alert('결제 오류', e.message);
-      }
+      if (e.code !== 'E_USER_CANCELLED') Alert.alert('결제 오류', e.message);
       setLoading(false);
     }
   };
 
-  // ── 상품 정보 병합 ────────────────────────────────────────
   const getMergedPlan = (planDefault) => {
     const product = products.find(p => p.productId === planDefault.id);
-    return {
-      ...planDefault,
-      price: product?.localizedPrice || '...',
-      title: product?.title || planDefault.name,
-    };
+    return { ...planDefault, price: product?.localizedPrice || planDefault.price };
   };
 
   const selectedPlan = PLANS_DEFAULT.find(p => p.id === selected);
@@ -137,8 +130,6 @@ export default function CreditScreen({ user, credits, setCredits, onClose }) {
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="light-content" backgroundColor={C.navy} />
-
-      {/* 헤더 */}
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>크레딧 충전</Text>
@@ -150,8 +141,6 @@ export default function CreditScreen({ user, credits, setCredits, onClose }) {
       </View>
 
       <ScrollView style={styles.body} contentContainerStyle={{ padding: 18, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-
-        {/* 현재 크레딧 */}
         <View style={styles.currentBox}>
           <View style={styles.zapCircle}><Zap size={16} color={C.teal} fill={C.teal} /></View>
           <Text style={styles.currentLabel}>현재 크레딧</Text>
@@ -161,7 +150,6 @@ export default function CreditScreen({ user, credits, setCredits, onClose }) {
 
         <Text style={styles.sectionLabel}>플랜 선택</Text>
 
-        {/* 플랜 카드 */}
         {loadingProducts ? (
           <View style={styles.loadingBox}>
             <ActivityIndicator color={C.teal} />
@@ -171,15 +159,13 @@ export default function CreditScreen({ user, credits, setCredits, onClose }) {
           <View style={{ gap: 10 }}>
             {PLANS_DEFAULT.map(planDefault => {
               const plan = getMergedPlan(planDefault);
-              const sel = plan.id === selected;
+              const sel  = plan.id === selected;
               return (
                 <TouchableOpacity key={plan.id} activeOpacity={0.85}
                   onPress={() => setSelected(plan.id)}
                   style={[styles.planCard, sel && styles.planCardSel]}>
                   {plan.popular && (
-                    <View style={styles.popularBadge}>
-                      <Text style={styles.popularText}>인기</Text>
-                    </View>
+                    <View style={styles.popularBadge}><Text style={styles.popularText}>인기</Text></View>
                   )}
                   <View style={[styles.radio, sel && { backgroundColor: C.teal, borderColor: C.teal }]}>
                     {sel && <View style={styles.radioInner} />}
@@ -200,7 +186,6 @@ export default function CreditScreen({ user, credits, setCredits, onClose }) {
           </View>
         )}
 
-        {/* 안내 박스 */}
         <View style={styles.infoBox}>
           {[
             '크레딧 유효기간 없음 (영구 사용)',
@@ -215,11 +200,9 @@ export default function CreditScreen({ user, credits, setCredits, onClose }) {
           ))}
         </View>
 
-        {/* 결제 버튼 */}
         <TouchableOpacity activeOpacity={0.9}
-          style={[styles.payBtn, (loading || loadingProducts) && { opacity: 0.6 }]}
-          onPress={handlePurchase}
-          disabled={loading || loadingProducts}>
+          style={[styles.payBtn, loading && { opacity: 0.6 }]}
+          onPress={handlePurchase} disabled={loading}>
           {loading
             ? <ActivityIndicator color="#FFFFFF" size="small" />
             : <Smartphone size={20} color="#FFFFFF" strokeWidth={2.2} />}
@@ -237,13 +220,10 @@ export default function CreditScreen({ user, credits, setCredits, onClose }) {
             : '🍎 App Store 결제 · 국가별 통화 자동 적용'}
         </Text>
 
-        {/* 환불 안내 */}
         <TouchableOpacity style={styles.refundBtn} onPress={() =>
-          Alert.alert('환불 정책',
-            '미사용 크레딧에 한해 구매일로부터 7일 이내 전액 환불 가능합니다.\n1장이라도 사용한 경우 환불이 불가합니다.\n\n환불 문의: ssmkra@gmail.com')}>
+          Alert.alert('환불 정책', '미사용 크레딧에 한해 구매일로부터 7일 이내 전액 환불 가능합니다.\n1장이라도 사용한 경우 환불이 불가합니다.\n\n환불 문의: ssmkra@gmail.com')}>
           <Text style={styles.refundText}>환불 정책 보기</Text>
         </TouchableOpacity>
-
       </ScrollView>
     </SafeAreaView>
   );
