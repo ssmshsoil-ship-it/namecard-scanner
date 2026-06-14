@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<!-- saved from url=(0052)file:///C:/Users/user/Downloads/feature-graphic.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0F172A; width:1024px; height:500px; overflow:hidden; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+.wrap { width:1024px; height:500px; position:relative; background:#0F172A; display:flex; align-items:center; }
+
+/* 배경 장식 */
+.bg-circle1 { position:absolute; width:360px; height:360px; border-radius:50%; background:rgba(6,182,212,0.06); top:-60px; right:160px; }
+.bg-circle2 { position:absolute; width:240px; height:240px; border-radius:50%; background:rgba(6,182,212,0.06); top:-20px; right:210px; }
+.bg-circle3 { position:absolute; width:280px; height:280px; border-radius:50%; background:rgba(6,182,212,0.04); bottom:-100px; left:60px; }
+
+/* 좌측 텍스트 */
+.left { padding:0 0 0 64px; flex:1; }
+.ai-badge { display:inline-block; background:#06B6D4; color:#0F172A; font-weight:800; font-size:12px; padding:5px 14px; border-radius:20px; margin-bottom:24px; letter-spacing:.5px; }
+.title { font-size:58px; font-weight:800; color:#FFFFFF; line-height:1.1; margin-bottom:12px; letter-spacing:-1px; }
+.title span { color:#06B6D4; }
+.sub { font-size:20px; color:#94A3B8; margin-bottom:8px; line-height:1.5; }
+.divider { width:48px; height:4px; background:#06B6D4; border-radius:2px; margin:20px 0; }
+.tags { display:flex; gap:8px; margin-bottom:24px; flex-wrap:wrap; }
+.tag { border:1px solid rgba(6,182,212,0.5); color:#06B6D4; font-size:12px; font-weight:700; padding:5px 14px; border-radius:20px; background:rgba(6,182,212,0.08); }
+.lang { font-size:13px; color:#475569; margin-bottom:24px; }
+.cta { display:inline-block; background:#06B6D4; color:#0F172A; font-weight:800; font-size:16px; padding:13px 28px; border-radius:14px; }
+
+/* 우측 폰 목업 */
+.right { width:420px; padding-right:32px; display:flex; gap:16px; align-items:center; justify-content:center; }
+.phone { width:200px; background:#1E293B; border-radius:28px; border:1.5px solid #334155; overflow:hidden; }
+.phone.main { height:430px; }
+.phone.sub { height:350px; opacity:0.65; transform:translateX(-20px); }
+
+.ph-header { background:#0F172A; padding:14px 12px 12px; }
+.ph-header-row { display:flex; align-items:center; justify-content:space-between; }
+.ph-logo { width:28px; height:28px; border-radius:8px; background:rgba(6,182,212,0.2); border:1px solid rgba(6,182,212,0.4); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; color:#06B6D4; }
+.ph-title { color:#fff; font-size:11px; font-weight:600; }
+.ph-credit { background:rgba(6,182,212,0.2); border:1px solid rgba(6,182,212,0.4); border-radius:12px; padding:3px 8px; font-size:10px; color:#06B6D4; font-weight:700; }
+
+.ph-body { background:#F8FAFC; padding:10px; flex:1; }
+
+.preview-box { background:#0F172A; border-radius:10px; overflow:hidden; margin-bottom:8px; position:relative; }
+.preview-img { width:100%; height:88px; display:flex; align-items:center; justify-content:center; }
+.bizcard { background:linear-gradient(135deg,#e8f5e9,#f1f8e9); border-radius:5px; width:148px; height:68px; display:flex; flex-direction:column; align-items:center; justify-content:center; border:0.5px solid #a5d6a7; }
+.bc-company { font-size:8px; font-weight:700; color:#1b5e20; }
+.bc-name { font-size:10px; font-weight:800; color:#2e7d32; margin:2px 0; }
+.bc-tel { font-size:7px; color:#388e3c; }
+.ready-badge { position:absolute; top:6px; right:6px; background:rgba(16,185,129,0.9); border-radius:10px; padding:2px 7px; font-size:7px; font-weight:700; color:#fff; }
+
+.btn-row { display:flex; gap:6px; margin-bottom:7px; }
+.btn-cam { flex:1; background:#06B6D4; border-radius:8px; padding:7px 0; text-align:center; font-size:9px; font-weight:700; color:#0F172A; }
+.btn-gal { flex:1; background:rgba(6,182,212,0.08); border:1px solid rgba(6,182,212,0.4); border-radius:8px; padding:7px 0; text-align:center; font-size:9px; font-weight:500; color:#334155; }
+
+.scan-btn { background:#0F172A; border:1.5px solid #06B6D4; border-radius:9px; padding:9px 0; text-align:center; font-size:10px; font-weight:700; color:#fff; margin-bottom:8px; }
+
+.caller-card { background:#0F172A; border-radius:10px; padding:10px; margin-bottom:8px; }
+.caller-label { font-size:7px; font-weight:700; color:rgba(255,255,255,0.4); letter-spacing:1px; margin-bottom:7px; }
+.caller-row { display:flex; align-items:center; gap:8px; }
+.caller-icon { width:34px; height:34px; border-radius:17px; background:rgba(6,182,212,0.2); border:1px solid rgba(6,182,212,0.4); display:flex; align-items:center; justify-content:center; font-size:14px; }
+.caller-company { color:#fff; font-size:9px; font-weight:600; }
+.caller-name { color:rgba(255,255,255,0.8); font-size:9px; }
+.caller-title { color:#06B6D4; font-size:9px; }
+
+.save-btn { background:#10B981; border-radius:10px; padding:10px 0; text-align:center; font-size:10px; font-weight:700; color:#fff; }
+
+/* 두번째 폰 필드들 */
+.field-item { background:#F1F5F9; border-radius:7px; padding:6px 8px; margin-bottom:5px; }
+.field-label { font-size:7px; font-weight:700; color:#64748B; letter-spacing:.8px; margin-bottom:2px; }
+.field-val { font-size:10px; color:#334155; font-weight:500; }
+
+/* 하단 워드마크 */
+.wordmark { position:absolute; bottom:18px; left:50%; transform:translateX(-50%); font-size:12px; color:#334155; white-space:nowrap; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bg-circle1"></div>
+  <div class="bg-circle2"></div>
+  <div class="bg-circle3"></div>
+
+  <!-- 좌측 -->
+  <div class="left">
+    <div class="ai-badge">AI 명함 인식</div>
+    <div class="title">명함<span>스캔</span></div>
+    <div class="sub">명함 찍으면 연락처 바로 저장</div>
+    <div class="sub" style="font-size:17px;color:#64748B">발신자 이름 자동 표시</div>
+    <div class="divider"></div>
+    <div class="tags">
+      <div class="tag">즉시 저장</div>
+      <div class="tag">AI 자동인식</div>
+      <div class="tag">발신자 표시</div>
+    </div>
+    <div class="lang">🇰🇷 한국어 · 🇯🇵 日本語 · 🇺🇸 English</div>
+    <div class="cta">무료 10장 체험</div>
+  </div>
+
+  <!-- 우측 폰 목업들 -->
+  <div class="right">
+    <!-- 두번째 폰 (뒤) -->
+    <div class="phone sub">
+      <div class="ph-header">
+        <div class="ph-header-row">
+          <div class="ph-logo">AI</div>
+          <div class="ph-title">명함스캔</div>
+          <div class="ph-credit">⚡95</div>
+        </div>
+      </div>
+      <div class="ph-body">
+        <div class="field-item"><div class="field-label">COMPANY</div><div class="field-val">전라테크노파크</div></div>
+        <div class="field-item"><div class="field-label">NAME</div><div class="field-val">박 경 자</div></div>
+        <div class="field-item"><div class="field-label">TITLE</div><div class="field-val">대표/공인중개사</div></div>
+        <div class="field-item"><div class="field-label">MOBILE</div><div class="field-val">010-7601-7928</div></div>
+        <div class="field-item"><div class="field-label">EMAIL</div><div class="field-val">park@jtp.or.kr</div></div>
+        <div class="save-btn" style="margin-top:8px">연락처에 저장</div>
+      </div>
+    </div>
+
+    <!-- 메인 폰 -->
+    <div class="phone main">
+      <div class="ph-header">
+        <div class="ph-header-row">
+          <div style="display:flex;align-items:center;gap:7px">
+            <div class="ph-logo">AI</div>
+            <div>
+              <div class="ph-title">명함스캔</div>
+              <div style="font-size:8px;color:rgba(255,255,255,0.45)">AI 명함 인식</div>
+            </div>
+          </div>
+          <div class="ph-credit">⚡95</div>
+        </div>
+      </div>
+      <div class="ph-body">
+        <div style="font-size:10px;font-weight:500;color:#64748B;margin-bottom:6px">명함 미리보기</div>
+        <div class="preview-box">
+          <div class="preview-img">
+            <div class="bizcard">
+              <div class="bc-company">전라테크노파크</div>
+              <div class="bc-name">박 경 자</div>
+              <div class="bc-tel">010-7601-7928</div>
+            </div>
+          </div>
+          <div class="ready-badge">● 준비완료</div>
+        </div>
+        <div class="btn-row">
+          <div class="btn-cam">📷 카메라</div>
+          <div class="btn-gal">🖼 갤러리</div>
+        </div>
+        <div class="scan-btn">✦ 명함 분석 시작</div>
+        <div class="caller-card">
+          <div class="caller-label">발신자 표시</div>
+          <div class="caller-row">
+            <div class="caller-icon">📞</div>
+            <div>
+              <div class="caller-company">전라테크노파크</div>
+              <div><span class="caller-name">박경자</span> <span class="caller-title">· 대표</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="save-btn">연락처에 저장</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wordmark">명함스캔 · Business Card Scanner · 名刺スキャナー</div>
+</div>
+
+
+</body></html>

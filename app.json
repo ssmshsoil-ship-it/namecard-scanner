@@ -16,9 +16,10 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.ssmshsoil.bizcardscanner",
       "infoPlist": {
-        "NSCameraUsageDescription": "���� �Կ��� ���� ī�޶� �ʿ��մϴ�.",
-        "NSContactsUsageDescription": "���� ������ ����ó�� �����ϱ� ���� �ʿ��մϴ�.",
-        "NSPhotoLibraryUsageDescription": "���������� ���� �̹����� �����ϱ� ���� �ʿ��մϴ�."
+        "NSCameraUsageDescription": "명함 촬영을 위해 카메라가 필요합니다.",
+        "NSContactsUsageDescription": "명함 정보를 연락처에 저장하기 위해 필요합니다.",
+        "NSPhotoLibraryUsageDescription": "갤러리에서 명함 사진을 선택하기 위해 필요합니다.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -45,7 +46,14 @@
     },
     "plugins": [
       "expo-localization",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.ssmshsoil.bizcardscanner",
+          "enableGooglePay": true
+        }
+      ]
     ]
   }
 }
