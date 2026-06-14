@@ -53,7 +53,8 @@
           "merchantIdentifier": "merchant.com.ssmshsoil.bizcardscanner",
           "enableGooglePay": true
         }
-      ]
+      ],
+      "expo-iap"
     ]
   }
 }

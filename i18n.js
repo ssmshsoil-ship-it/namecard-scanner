@@ -3,11 +3,19 @@ import * as Localization from 'expo-localization';
 import ko from './locales/ko.json';
 import en from './locales/en.json';
 import ja from './locales/ja.json';
+import zhTW from './locales/zh-TW.json';
+import zhHK from './locales/zh-HK.json';
+import zhSG from './locales/zh-SG.json';
+import de from './locales/de.json';
+import hi from './locales/hi.json';
+import ar from './locales/ar.json';
+import fr from './locales/fr.json';
+import es from './locales/es.json';
+import ptBR from './locales/pt-BR.json';
+import id from './locales/id.json';
 
-const i18n = new I18n({ ko, en, ja });
-
+const i18n = new I18n({ ko, en, ja, 'zh-TW': zhTW, 'zh-HK': zhHK, 'zh-SG': zhSG, de, hi, ar, fr, es, 'pt-BR': ptBR, id });
 i18n.locale = Localization.getLocales()[0].languageCode;
 i18n.enableFallback = true;
 i18n.defaultLocale = 'en';
-
 export default i18n;
